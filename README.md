@@ -4,6 +4,8 @@ An interactive research dashboard that tests whether earnings-call language help
 
 It turns transcript text into measurable signals, compares an NLP-enhanced model against a price-only baseline, ranks bullish and bearish calls, and visualizes the results in Streamlit.
 
+View dashboard: https://earning-calls-signal.streamlit.app
+
 ## Why It Matters
 
 Earnings calls are high-stakes market events. Investors react not only to reported numbers, but also to how management talks about demand, margins, risk, and guidance. This project asks whether that language adds signal beyond recent price behavior.
