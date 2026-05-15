@@ -58,7 +58,13 @@ def add_text_features(events: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for text in events["transcript"]:
         tokens = tokenize(text)
+        sentences = [
+            sentence.strip()
+            for sentence in re.split(r"[.!?]+", str(text))
+            if sentence.strip()
+        ]
         total_words = max(len(tokens), 1)
+        sentence_count = max(len(sentences), 1)
         positive_count = count_terms(tokens, POSITIVE_TERMS)
         negative_count = count_terms(tokens, NEGATIVE_TERMS)
         uncertainty_count = count_terms(tokens, UNCERTAINTY_TERMS)
@@ -71,6 +77,7 @@ def add_text_features(events: pd.DataFrame) -> pd.DataFrame:
                 "net_sentiment": (positive_count - negative_count) / total_words,
                 "question_count": str(text).count("?"),
                 "exclamation_count": str(text).count("!"),
+                "avg_sentence_length": total_words / sentence_count,
             }
         )
 

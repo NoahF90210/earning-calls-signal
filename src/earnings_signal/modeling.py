@@ -19,6 +19,7 @@ NLP_NUMERIC_FEATURES = [
     "uncertainty_term_rate",
     "net_sentiment",
     "question_count",
+    "avg_sentence_length",
 ]
 TARGET_CLASS = "target_positive_5d"
 TARGET_REGRESSION = "market_adjusted_return_5d"

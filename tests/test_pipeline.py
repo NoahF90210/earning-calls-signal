@@ -16,6 +16,7 @@ def test_build_event_dataset_creates_primary_target() -> None:
     assert "target_positive_5d" in events.columns
     assert events["target_positive_5d"].isin([0, 1]).all()
     assert events["word_count"].min() > 0
+    assert events["avg_sentence_length"].min() > 0
 
 
 def test_time_split_is_chronological() -> None:
