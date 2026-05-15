@@ -25,6 +25,11 @@ import urllib.request
 DEFAULT_URL = "https://earning-calls-signal.streamlit.app"
 
 
+def is_success_status(code: int) -> bool:
+    """Treat redirects as success because Streamlit may redirect while waking."""
+    return 200 <= code < 400
+
+
 def main() -> int:
     env_url = os.environ.get("STREAMLIT_KEEP_ALIVE_URL", "").strip()
     resolved_default = env_url or DEFAULT_URL
@@ -56,13 +61,16 @@ def main() -> int:
         with urllib.request.urlopen(req, timeout=args.timeout) as resp:
             code = resp.getcode()
     except urllib.error.HTTPError as e:
+        if is_success_status(e.code):
+            print(f"OK {e.code} {args.url}")
+            return 0
         print(f"HTTP {e.code}: {args.url}", file=sys.stderr)
         return 1
     except urllib.error.URLError as e:
         print(f"Request failed: {e.reason}", file=sys.stderr)
         return 1
 
-    if code != 200:
+    if not is_success_status(code):
         print(f"Unexpected status {code}: {args.url}", file=sys.stderr)
         return 1
 
