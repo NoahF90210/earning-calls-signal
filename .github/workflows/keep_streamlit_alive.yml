@@ -4,8 +4,9 @@ name: Keep Streamlit warm
 
 on:
   schedule:
-    # Every 10 minutes (UTC). Adjust if Streamlit changes idle behavior.
-    - cron: "*/10 * * * *"
+    # Every 5 minutes (UTC)—GitHub's practical minimum interval; lowers the odds
+    # of Streamlit idle-sleep reopening during schedule jitter/delay.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:

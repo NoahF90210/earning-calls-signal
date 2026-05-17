@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -25,6 +26,15 @@ from earnings_signal.features import add_text_features, top_language_terms
 from earnings_signal.modeling import train_models
 
 st.set_page_config(page_title="Earnings Call Signal", layout="wide")
+
+
+@st.fragment(run_every=timedelta(minutes=4))
+def _hosted_keepalive_fragment() -> None:
+    """Trivial periodic rerun while a tab stays open—helps idle timers on hosted Streamlit."""
+    st.empty()
+
+
+_hosted_keepalive_fragment()
 
 
 @st.cache_data(show_spinner=False)
