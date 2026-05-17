@@ -4,7 +4,6 @@
 
 [Live app](https://earning-calls-signal.streamlit.app) | [Case study](docs/case_study.md)
 
-![Dashboard overview placeholder](docs/assets/dashboard-overview.svg)
 
 ## Portfolio Snapshot
 
@@ -23,7 +22,6 @@
 4. In **Signal Check**, review the bullish/bearish ranking and whether top-ranked calls had better realized returns than bottom-ranked calls.
 5. Open **Methodology and interpretation** to see the data join, feature set, validation design, and caveats.
 
-![Model comparison placeholder](docs/assets/model-comparison.svg)
 
 View dashboard: https://earning-calls-signal.streamlit.app
 
