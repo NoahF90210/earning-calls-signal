@@ -68,49 +68,91 @@ def term_count(row: pd.Series, rate_column: str) -> int:
     return int(round(row[rate_column] * row["word_count"]))
 
 
+def format_pct(value: float, digits: int = 0) -> str:
+    if pd.isna(value):
+        return "n/a"
+    return f"{value:.{digits}%}"
+
+
 events, results, signals = load_or_build_outputs()
 events["language_tone"] = events.apply(language_tone, axis=1)
 nlp_signals = signals.query("model == 'NLP-enhanced'").copy()
+baseline_model = results.query("model == 'Price-only baseline'").iloc[0]
+nlp_model = results.query("model == 'NLP-enhanced'").iloc[0]
+bucket_size = max(1, len(nlp_signals) // 3)
+top_bucket = nlp_signals.nlargest(bucket_size, "signal_score")
+bottom_bucket = nlp_signals.nsmallest(bucket_size, "signal_score")
+top_bottom_spread = (
+    top_bucket["market_adjusted_return_5d"].mean()
+    - bottom_bucket["market_adjusted_return_5d"].mean()
+)
 
 st.title("Earnings Call Signal")
 st.caption(
-    "Testing whether management language after earnings adds signal beyond pre-call "
-    "price behavior. Primary target: 5-day market-adjusted return versus SPY."
+    "Does earnings-call language add signal beyond price behavior for 5-day "
+    "market-adjusted returns?"
 )
 
 best_model = results.sort_values("auc", ascending=False, na_position="last").iloc[0]
-nlp_accuracy = results.query("model == 'NLP-enhanced'")["accuracy"].iloc[0]
 summary_col, method_col = st.columns([1.15, 1])
 summary_col.markdown(
     """
-    **What this answers:** can transcript language improve short-term post-earnings
-    return prediction versus price behavior alone?
+    **Portfolio snapshot:** this dashboard joins transcript events to stock and SPY
+    returns, engineers price and language features, validates chronologically, ranks
+    bullish/bearish calls, and checks rankings against realized returns.
 
-    **Workflow:** transcripts -> event-level returns -> text features + TF-IDF -> model
-    comparison -> ranked bullish/bearish signals.
+    **Current answer:** the checked-in demo recovers an embedded language signal, but
+    it does not prove an investable real-market edge.
     """
 )
 method_col.info(
-    "Demo mode uses a small deterministic sample dataset. Treat the results as a "
-    "workflow demonstration until rerun on a larger public transcript corpus with live prices.",
+    "Demo mode uses a small deterministic sample dataset. It is useful for reviewing "
+    "the workflow, not for making investment decisions.",
 )
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Events", f"{len(events):,}")
-col2.metric("Tickers", events["ticker"].nunique())
-col3.metric("Best AUC", f"{best_model['auc']:.2f}" if pd.notna(best_model["auc"]) else "n/a")
-col4.metric("NLP Accuracy", f"{nlp_accuracy:.0%}")
+col2.metric("Holdout Events", f"{int(nlp_model['test_events']):,}")
+col3.metric(
+    "Best Demo AUC",
+    f"{best_model['auc']:.2f}" if pd.notna(best_model["auc"]) else "n/a",
+)
+col4.metric("Top-Bottom Spread", format_pct(top_bottom_spread, 2))
+
+st.subheader("Key Findings From The Checked-In Demo")
+finding_col1, finding_col2, finding_col3 = st.columns(3)
+finding_col1.metric(
+    "Accuracy: price-only -> NLP",
+    f"{format_pct(baseline_model['accuracy'])} -> {format_pct(nlp_model['accuracy'])}",
+)
+finding_col2.metric(
+    "Error: price-only -> NLP",
+    f"{format_pct(baseline_model['mae'], 2)} -> {format_pct(nlp_model['mae'], 2)} MAE",
+)
+finding_col3.metric(
+    "Rank diagnostic",
+    f"{format_pct(top_bottom_spread, 2)} top-minus-bottom",
+)
+st.caption(
+    "These are demo results only: the default price series is deterministic and seeded "
+    "from demo_signal, so strong NLP metrics show the pipeline can recover the embedded "
+    "signal rather than proving a durable trading edge."
+)
 
 with st.expander("Methodology and interpretation"):
     st.markdown(
         """
-        - The target is the next 5 trading days of stock return minus benchmark return.
+        - Earnings calls are high-stakes events where sentiment, risk, and guidance
+          language may matter.
+        - The target is the next 5 trading days of stock return minus SPY return.
         - The baseline model uses prior 30-day return and volatility.
         - The NLP-enhanced model adds sentiment, uncertainty, question count,
           average sentence length, and TF-IDF transcript terms.
         - Validation is chronological, so later calls are held out from training.
-        - The backtest panel is a diagnostic top-vs-bottom signal spread,
-          not a production trading strategy.
+        - The signal check compares ranked probabilities with realized returns.
+        - Limitations: small demo dataset, no investment advice, larger transcript corpus
+          needed, timestamp validation needed, transaction costs excluded, and robustness
+          checks still required.
         """
     )
 
@@ -271,13 +313,6 @@ with tab_signal:
         "This view compares the NLP model's bullish probability with the realized "
         "5-day market-adjusted return on the holdout events."
     )
-    bucket_size = max(1, len(nlp_signals) // 3)
-    top_bucket = nlp_signals.nlargest(bucket_size, "signal_score")
-    bottom_bucket = nlp_signals.nsmallest(bucket_size, "signal_score")
-    spread = (
-        top_bucket["market_adjusted_return_5d"].mean()
-        - bottom_bucket["market_adjusted_return_5d"].mean()
-    )
     score_col1, score_col2, score_col3 = st.columns(3)
     score_col1.metric(
         "Top-ranked avg return", f"{top_bucket['market_adjusted_return_5d'].mean():.2%}"
@@ -286,7 +321,7 @@ with tab_signal:
         "Bottom-ranked avg return",
         f"{bottom_bucket['market_adjusted_return_5d'].mean():.2%}",
     )
-    score_col3.metric("Top-minus-bottom spread", f"{spread:.2%}")
+    score_col3.metric("Top-minus-bottom spread", f"{top_bottom_spread:.2%}")
 
     signal_chart = px.scatter(
         nlp_signals,
